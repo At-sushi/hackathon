@@ -40,9 +40,16 @@ let testDrawFunc() =
     ignore(DX.ScreenFlip())
     Thread.Sleep (1000 / 60)
 
-//let nextGen (points:((int * int) List)) =
-//    seq { for i in [0..maxTiles] -> for j in [0..maxTiles]  do List.filter((List.filter(fun (x, y) -> abs(i - x) <= 1 && abs(j + y) <= 1) points).Length >= 3) [(0,0)..(maxTiles,maxTiles)] done
-//        }
+let nextGen (points) =
+     seq {
+         for i in [0..maxTiles] do for j in [0..maxTiles] do
+             let nearby = (Seq.toList << Seq.filter(fun (x, y) -> (abs(i - x) <= 1 && abs(j - y) <= 1))) points
+             if (match (List.tryFind((=)(i, j)) nearby) with
+             | Some(_) -> nearby.Length - 1 = 3 || nearby.Length - 1 = 2
+             | None -> nearby.Length = 3) then yield (i, j)
+     }
+        
+
 
 // 点を無限に増やして描画
 let rec drawPoints points drawfunc =
@@ -53,13 +60,19 @@ let rec drawPoints points drawfunc =
     if (points.Length < 32) then drawPoints (nextPoints.Force()) drawfunc
     drawfunc points
 
+// ライフゲーム点
+let rec drawlgPoints points drawfunc =
+    let nextPoints = lazy nextGen points
+    drawfunc points
+    if (Seq.toList(points).Length < 32) then drawlgPoints (nextPoints.Force()) drawfunc
+
 // 点を描画するための高階関数
 let DrawPointsFunc points =
     for i in points do
         ignore(DX.DrawCircle (fst i * tileSize, snd i * tileSize, 6, 0x22FF0000))
     done
     ignore(DX.ScreenFlip())
-    Thread.Sleep (1000 / 12)
+    Thread.Sleep (1000 / 1)
 
 // 関数を指定してDXLibを呼び出す
 let UseDxLib (form:Form) targetFunc = 
@@ -80,14 +93,14 @@ let main argv =
 
     // ゲームループとか
     let GameMainThread() =
-        let points = [(4, 3)]
+        let points = [(4, 3);(5,3);(4,2);(6,3);(5,1)]
         let graphBG = DX.LoadGraph "testgrf.png"
 
         testloop2 0 0 testDrawFunc
 
         while form.IsDisposed = false do
             ignore(DX.ClearDrawScreen())
-            drawPoints points (fun points ->
+            drawlgPoints points (fun points ->
                     ignore(DX.ClearDrawScreen(),
                             DX.DrawGraph(400, 480 - 400, graphBG, DX.TRUE))
                     testloop()
