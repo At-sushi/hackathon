@@ -28,8 +28,9 @@ let rec testloop2 count x drawMethod =
         | DX.KEY_INPUT_LEFT -> x - 2
         | DX.KEY_INPUT_RIGHT -> x + 2
         | _ -> x
-    if (DX.GetMouseInput() = DX.MOUSE_INPUT_LEFT) then do 
-        drawMethod()
+    if (Control.MouseButtons.HasFlag MouseButtons.Left <> false) then do 
+//        drawMethod()
+        Thread.Sleep 100
         testloop2 (count + 1) x2 drawMethod
 
 
@@ -37,7 +38,11 @@ let rec testloop2 count x drawMethod =
 // 点を描画するための高階関数
 let testDrawFunc() =
     ignore(DX.ScreenFlip())
-    System.Threading.Thread.Sleep (1000 / 60)
+    Thread.Sleep (1000 / 60)
+
+//let nextGen (points:((int * int) List)) =
+//    seq { for i in [0..maxTiles] -> for j in [0..maxTiles]  do List.filter((List.filter(fun (x, y) -> abs(i - x) <= 1 && abs(j + y) <= 1) points).Length >= 3) [(0,0)..(maxTiles,maxTiles)] done
+//        }
 
 // 点を無限に増やして描画
 let rec drawPoints points drawfunc =
@@ -45,7 +50,8 @@ let rec drawPoints points drawfunc =
         (List.filter (fun i -> 0 <= fst i && fst i <= maxTiles && 0 <= snd i && snd i <= maxTiles)
         << List.collect(fun (x, y) -> [(x-1, y); (x+1, y); (x, y-1); (x, y+1)])) points
     drawfunc points
-    if (points.Length < 512) then drawPoints (nextPoints.Force()) drawfunc
+    if (points.Length < 32) then drawPoints (nextPoints.Force()) drawfunc
+    drawfunc points
 
 // 点を描画するための高階関数
 let DrawPointsFunc points =
@@ -53,7 +59,7 @@ let DrawPointsFunc points =
         ignore(DX.DrawCircle (fst i * tileSize, snd i * tileSize, 6, 0x22FF0000))
     done
     ignore(DX.ScreenFlip())
-    System.Threading.Thread.Sleep (1000)
+    Thread.Sleep (1000 / 12)
 
 // 関数を指定してDXLibを呼び出す
 let UseDxLib (form:Form) targetFunc = 
@@ -89,7 +95,7 @@ let main argv =
                     )
             testloop()
             ignore(DX.ScreenFlip())
-            System.Threading.Thread.Sleep (1000 / 60)
+            Thread.Sleep (1000 / 60)
         done
 
     let gameThread = Thread(new ThreadStart(GameMainThread))
