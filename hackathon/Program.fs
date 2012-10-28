@@ -29,7 +29,6 @@ let rec testloop2 count x drawMethod =
         | DX.KEY_INPUT_RIGHT -> x + 2
         | _ -> x
     if (Control.MouseButtons.HasFlag MouseButtons.Left <> false) then do 
-//        drawMethod()
         Thread.Sleep 100
         testloop2 (count + 1) x2 drawMethod
 
@@ -41,13 +40,13 @@ let testDrawFunc() =
     Thread.Sleep (1000 / 60)
 
 let nextGen (points) =
-     seq {
+     [
          for i in [0..maxTiles] do for j in [0..maxTiles] do
              let nearby = (Seq.toList << Seq.filter(fun (x, y) -> (abs(i - x) <= 1 && abs(j - y) <= 1))) points
              if (match (List.tryFind((=)(i, j)) nearby) with
              | Some(_) -> nearby.Length - 1 = 3 || nearby.Length - 1 = 2
              | None -> nearby.Length = 3) then yield (i, j)
-     }
+     ]
         
 
 
@@ -57,14 +56,15 @@ let rec drawPoints points drawfunc =
         (List.filter (fun i -> 0 <= fst i && fst i <= maxTiles && 0 <= snd i && snd i <= maxTiles)
         << List.collect(fun (x, y) -> [(x-1, y); (x+1, y); (x, y-1); (x, y+1)])) points
     drawfunc points
-    if (points.Length < 32) then drawPoints (nextPoints.Force()) drawfunc
-    drawfunc points
+    if (points.Length < 32) then do
+        drawPoints (nextPoints.Force()) drawfunc
+        drawfunc points
 
 // ライフゲーム点
-let rec drawlgPoints points drawfunc =
+let rec drawlgPoints (form:Form) points drawfunc =
     let nextPoints = lazy nextGen points
     drawfunc points
-    if (Seq.toList(points).Length < 32) then drawlgPoints (nextPoints.Force()) drawfunc
+    if (form.IsDisposed = false) then drawlgPoints form (nextPoints.Force()) drawfunc
 
 // 点を描画するための高階関数
 let DrawPointsFunc points =
@@ -100,7 +100,7 @@ let main argv =
 
         while form.IsDisposed = false do
             ignore(DX.ClearDrawScreen())
-            drawlgPoints points (fun points ->
+            drawlgPoints form points (fun points ->
                     ignore(DX.ClearDrawScreen(),
                             DX.DrawGraph(400, 480 - 400, graphBG, DX.TRUE))
                     testloop()
