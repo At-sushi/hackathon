@@ -42,7 +42,7 @@ let testDrawFunc() =
 let nextGen (points) =
      [
          for i in [0..maxTiles] do for j in [0..maxTiles] do
-             let nearby = (Seq.toList << Seq.filter(fun (x, y) -> (abs(i - x) <= 1 && abs(j - y) <= 1))) points
+             let nearby = List.filter(fun (x, y) -> (abs(i - x) <= 1 && abs(j - y) <= 1)) points
              if (match (List.tryFind((=)(i, j)) nearby) with
              | Some(_) -> nearby.Length - 1 = 3 || nearby.Length - 1 = 2
              | None -> nearby.Length = 3) then yield (i, j)
@@ -53,7 +53,7 @@ let nextGen (points) =
 // 点を無限に増やして描画
 let rec drawPoints points drawfunc =
     let nextPoints = lazy
-        (List.filter (fun i -> 0 <= fst i && fst i <= maxTiles && 0 <= snd i && snd i <= maxTiles)
+        (List.filter (fun i -> (0, 0) <= i && i <= (maxTiles, maxTiles))
         << List.collect(fun (x, y) -> [(x-1, y); (x+1, y); (x, y-1); (x, y+1)])) points
     drawfunc points
     if (points.Length < 32) then do
