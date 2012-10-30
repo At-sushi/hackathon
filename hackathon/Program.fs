@@ -24,9 +24,9 @@ let testloop() =
 
 let rec testloop2 count x drawMethod =
     let x2 =
-        match DX.CheckHitKeyAll() with
-        | DX.KEY_INPUT_LEFT -> x - 2
-        | DX.KEY_INPUT_RIGHT -> x + 2
+        match Control.ModifierKeys with
+        | Keys.Left -> x - 2
+        | Keys.Right -> x + 2
         | _ -> x
     if (Control.MouseButtons.HasFlag MouseButtons.Left <> false) then do 
         Thread.Sleep 100
@@ -34,7 +34,7 @@ let rec testloop2 count x drawMethod =
 
 
 
-// 点を描画するための高階関数
+// 点を描画するための関数
 let testDrawFunc() =
     ignore(DX.ScreenFlip())
     Thread.Sleep (1000 / 60)
@@ -66,18 +66,18 @@ let rec drawlgPoints (form:Form) points drawfunc =
     drawfunc points
     if (form.IsDisposed = false) then drawlgPoints form (nextPoints.Force()) drawfunc
 
-// 点を描画するための高階関数
+// 点を描画するための関数
 let DrawPointsFunc points =
     for i in points do
         ignore(DX.DrawCircle (fst i * tileSize, snd i * tileSize, 6, 0x22FF0000))
     done
     ignore(DX.ScreenFlip())
-    Thread.Sleep (1000 / 1)
+    Thread.Sleep (1000 / 3)
 
 // 関数を指定してDXLibを呼び出す
-let UseDxLib (form:Form) targetFunc = 
+let UseDxLibIn (form:Form) targetFunc = 
     ignore(DX.SetUserWindow(form.Handle))
-    let result = DX.DxLib_Init()
+    let result = DX.DxLib_Init() in
     if result = -1 then raise (Runtime.InteropServices.ExternalException("DXLib initialize failed."))
     ignore(DX.SetDrawScreen(DX.DX_SCREEN_BACK),
             DX.SetDrawBlendMode(DX.DX_BLENDMODE_ALPHA, 22))
@@ -89,7 +89,9 @@ let UseDxLib (form:Form) targetFunc =
 [<EntryPoint>]
 let main argv = 
     let hoge = 12
-    let form = new Form()
+    let form = new Form(Width = 640,
+                        Height = 480,
+                        FormBorderStyle = FormBorderStyle.Fixed3D)
 
     // ゲームループとか
     let GameMainThread() =
@@ -112,13 +114,8 @@ let main argv =
         done
 
     let gameThread = Thread(new ThreadStart(GameMainThread))
-    
-    form.Width <- 640
-    form.Height <- 480
-    form.FormBorderStyle <- FormBorderStyle.Fixed3D
     form.Show()
-
-    UseDxLib form (fun () ->
+    UseDxLibIn form (fun () ->
         gameThread.Start()
         Application.Run form
         gameThread.Join())
