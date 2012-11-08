@@ -29,17 +29,18 @@ let rec testloop2 count x drawMethod =
         | Keys.Right -> x + 2
         | _ -> x
     if (Control.MouseButtons.HasFlag MouseButtons.Left <> false) then do 
-        Thread.Sleep 100
+        drawMethod x
         testloop2 (count + 1) x2 drawMethod
 
 
 
-// 点を描画するための関数
-let testDrawFunc() =
+let testDrawFunc x =
+    ignore(DX.DrawCircle (x + 12, 150, 6, 0x22FF0000))
     ignore(DX.ScreenFlip())
     Thread.Sleep (1000 / 60)
 
-let nextGen (points) =
+// ライフゲームの次の世代を計算
+let nextGen points =
      [
          for i in [0..maxTiles] do for j in [0..maxTiles] do
              let nearby = List.filter(fun (x, y) -> (abs(i - x) <= 1 && abs(j - y) <= 1)) points
@@ -47,13 +48,11 @@ let nextGen (points) =
              | Some(_) -> nearby.Length - 1 = 3 || nearby.Length - 1 = 2
              | None -> nearby.Length = 3) then yield (i, j)
      ]
-        
-
 
 // 点を無限に増やして描画
 let rec drawPoints points drawfunc =
     let nextPoints = lazy
-        (List.filter (fun i -> (0, 0) <= i && i <= (maxTiles, maxTiles))
+        (List.filter (fun (x, y) -> 0 <= x && x <= maxTiles && 0 <= y && y <= maxTiles)
         << List.collect(fun (x, y) -> [(x-1, y); (x+1, y); (x, y-1); (x, y+1)])) points
     drawfunc points
     if (points.Length < 32) then do
@@ -76,7 +75,8 @@ let DrawPointsFunc points =
 
 // 関数を指定してDXLibを呼び出す
 let UseDxLibIn (form:Form) targetFunc = 
-    ignore(DX.SetUserWindow(form.Handle))
+    ignore(DX.SetUserWindow(form.Handle),
+           DX.SetMultiThreadFlag(DX.TRUE))
     let result = DX.DxLib_Init() in
     if result = -1 then raise (Runtime.InteropServices.ExternalException("DXLib initialize failed."))
     ignore(DX.SetDrawScreen(DX.DX_SCREEN_BACK),
@@ -86,6 +86,26 @@ let UseDxLibIn (form:Form) targetFunc =
 
     DX.DxLib_End()
 
+// ゲームループとか
+let GameMainThread (form:Form) () =
+    let points = [(4, 3);(5,3);(4,2);(6,3);(5,1)]
+    let graphBG = DX.LoadGraph "testgrf.png"
+
+    testloop2 0 0 testDrawFunc
+
+    while form.IsDisposed = false do
+        ignore(DX.ClearDrawScreen())
+        drawlgPoints form points (fun points ->
+                ignore(DX.ClearDrawScreen(),
+                        DX.DrawGraph(400, 480 - 400, graphBG, DX.TRUE))
+                testloop()
+                DrawPointsFunc points
+                )
+        testloop()
+        ignore(DX.ScreenFlip())
+        Thread.Sleep (1000 / 60)
+    done
+
 [<EntryPoint>]
 let main argv = 
     let hoge = 12
@@ -93,27 +113,7 @@ let main argv =
                         Height = 480,
                         FormBorderStyle = FormBorderStyle.Fixed3D)
 
-    // ゲームループとか
-    let GameMainThread() =
-        let points = [(4, 3);(5,3);(4,2);(6,3);(5,1)]
-        let graphBG = DX.LoadGraph "testgrf.png"
-
-        testloop2 0 0 testDrawFunc
-
-        while form.IsDisposed = false do
-            ignore(DX.ClearDrawScreen())
-            drawlgPoints form points (fun points ->
-                    ignore(DX.ClearDrawScreen(),
-                            DX.DrawGraph(400, 480 - 400, graphBG, DX.TRUE))
-                    testloop()
-                    DrawPointsFunc points
-                    )
-            testloop()
-            ignore(DX.ScreenFlip())
-            Thread.Sleep (1000 / 60)
-        done
-
-    let gameThread = Thread(new ThreadStart(GameMainThread))
+    let gameThread = Thread(new ThreadStart(GameMainThread form))
     form.Show()
     UseDxLibIn form (fun () ->
         gameThread.Start()
