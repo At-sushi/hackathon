@@ -35,8 +35,8 @@ let rec testloop2 count x drawMethod =
 
 
 let testDrawFunc x =
-    ignore(DX.DrawCircle (x + 12, 150, 6, 0x22FF0000))
-    ignore(DX.ScreenFlip())
+    ignore <| DX.DrawCircle (x + 12, 150, 6, 0x22FF0000)
+    ignore <| DX.ScreenFlip()
     Thread.Sleep (1000 / 60)
 
 // ライフゲームの次の世代を計算
@@ -68,9 +68,9 @@ let rec drawlgPoints (form:Form) points drawfunc =
 // 点を描画するための関数
 let DrawPointsFunc points =
     for i in points do
-        ignore(DX.DrawCircle (fst i * tileSize, snd i * tileSize, 6, 0x22FF0000))
+        ignore <| DX.DrawCircle (fst i * tileSize, snd i * tileSize, 6, 0x22FF0000)
     done
-    ignore(DX.ScreenFlip())
+    ignore <| DX.ScreenFlip()
     Thread.Sleep (1000 / 3)
 
 // 関数を指定してDXLibを呼び出す
@@ -94,14 +94,14 @@ let GameMainThread (form:Form) () =
     testloop2 0 0 testDrawFunc
 
     while form.IsDisposed = false do
-        ignore(DX.ClearDrawScreen())
+        ignore <| DX.ClearDrawScreen()
         drawlgPoints form points <| fun points ->
                 ignore(DX.ClearDrawScreen(),
                         DX.DrawGraph(400, 480 - 400, graphBG, DX.TRUE))
                 testloop()
                 DrawPointsFunc points
         testloop()
-        ignore(DX.ScreenFlip())
+        ignore <| DX.ScreenFlip()
         Thread.Sleep (1000 / 60)
     done
 
