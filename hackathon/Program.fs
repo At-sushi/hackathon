@@ -43,8 +43,8 @@ let testDrawFunc x =
 let nextGen points =
      [
          for i in [0..maxTiles] do for j in [0..maxTiles] do
-             let nearby = List.filter(fun (x, y) -> (abs(i - x) <= 1 && abs(j - y) <= 1)) points
-             if (match (List.tryFind((=)(i, j)) nearby) with
+             let nearby = List.filter(fun (x, y) -> abs(i - x) <= 1 && abs(j - y) <= 1) points
+             if (match (List.tryFind <| (=)(i, j) <| nearby) with
              | Some(_) -> nearby.Length - 1 = 3 || nearby.Length - 1 = 2
              | None -> nearby.Length = 3) then yield (i, j)
      ]
@@ -52,18 +52,18 @@ let nextGen points =
 // 点を無限に増やして描画
 let rec drawPoints points drawfunc =
     let nextPoints = lazy
-        (List.filter (fun (x, y) -> 0 <= x && x <= maxTiles && 0 <= y && y <= maxTiles)
-        << List.collect(fun (x, y) -> [(x-1, y); (x+1, y); (x, y-1); (x, y+1)])) points
+        List.filter (fun (x, y) -> 0 <= x && x <= maxTiles && 0 <= y && y <= maxTiles)
+        << List.collect(fun (x, y) -> [(x-1, y); (x+1, y); (x, y-1); (x, y+1)]) <| points
     drawfunc points
     if (points.Length < 32) then do
-        drawPoints (nextPoints.Force()) drawfunc
+        drawPoints <| nextPoints.Force() <| drawfunc
         drawfunc points
 
 // ライフゲーム点
 let rec drawlgPoints (form:Form) points drawfunc =
     let nextPoints = lazy nextGen points
     drawfunc points
-    if (form.IsDisposed = false) then drawlgPoints form (nextPoints.Force()) drawfunc
+    if (form.IsDisposed = false) then drawlgPoints form <| nextPoints.Force() <| drawfunc
 
 // 点を描画するための関数
 let DrawPointsFunc points =
@@ -78,7 +78,7 @@ let UseDxLibIn (form:Form) targetFunc =
     ignore(DX.SetUserWindow(form.Handle),
            DX.SetMultiThreadFlag(DX.TRUE))
     let result = DX.DxLib_Init() in
-    if result = -1 then raise (Runtime.InteropServices.ExternalException("DXLib initialize failed."))
+    if result = -1 then raise <| Runtime.InteropServices.ExternalException("DXLib initialize failed.")
     ignore(DX.SetDrawScreen(DX.DX_SCREEN_BACK),
             DX.SetDrawBlendMode(DX.DX_BLENDMODE_ALPHA, 22))
 
@@ -95,12 +95,11 @@ let GameMainThread (form:Form) () =
 
     while form.IsDisposed = false do
         ignore(DX.ClearDrawScreen())
-        drawlgPoints form points (fun points ->
+        drawlgPoints form points <| fun points ->
                 ignore(DX.ClearDrawScreen(),
                         DX.DrawGraph(400, 480 - 400, graphBG, DX.TRUE))
                 testloop()
                 DrawPointsFunc points
-                )
         testloop()
         ignore(DX.ScreenFlip())
         Thread.Sleep (1000 / 60)
@@ -115,8 +114,8 @@ let main argv =
 
     let gameThread = Thread(new ThreadStart(GameMainThread form))
     form.Show()
-    UseDxLibIn form (fun () ->
+    UseDxLibIn form <| fun () ->
         gameThread.Start()
         Application.Run form
-        gameThread.Join())
+        gameThread.Join()
 
