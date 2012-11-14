@@ -87,7 +87,7 @@ let UseDxLibIn (form:Form) targetFunc =
     DX.DxLib_End()
 
 // ゲームループとか
-let GameMainThread (form:Form) () =
+let GameMainThread (form:Form) =
     let points = [(4, 3);(5,3);(4,2);(6,3);(5,1)]
     let graphBG = DX.LoadGraph "testgrf.png"
 
@@ -112,7 +112,7 @@ let main argv =
                         Height = 480,
                         FormBorderStyle = FormBorderStyle.Fixed3D)
 
-    let gameThread = Thread(new ThreadStart(GameMainThread form))
+    let gameThread = Thread(new ThreadStart(fun () -> GameMainThread form))
     form.Show()
     UseDxLibIn form <| fun () ->
         gameThread.Start()
